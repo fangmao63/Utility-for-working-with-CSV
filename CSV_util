@@ -1,0 +1,337 @@
+#include <chrono>
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <typeinfo>
+#include <string>
+#include <stdlib.h>
+#include <sstream>
+using namespace std;
+
+vector<vector<string>> table;
+string way = "D:\\for projects\\for c++.csv";
+int number_of_columns = 0; //Количество столбцов
+int numb_line = 0; //номер текущей линии 
+
+string ident(int max_lenght) {
+    string resul = "";
+    for (int i = 0; i < max_lenght; ++i) {
+        resul = resul + ' ';
+    }
+    return resul;
+}
+int get_max_lenght() {
+    int max = -100000;
+    for (int i = 0; i < numb_line; ++i) {
+        for (int i1 = 0; i1 < number_of_columns; ++i1) {
+            string elem = table[i][i1];
+            int size = table[i][i1].size();
+            if (max < size) {
+                max = table[i][i1].size();
+            }
+        }
+    }
+    return max;
+} // ////.
+void print_table(int max_length) {
+    cout << "y x>";
+    for (int i = 0; i < number_of_columns; ++i) {
+        cout << ident(max_length / 2 + 2) << i + 1 << ident(max_length / 2);
+    }
+    cout << endl;
+
+    for (int i = 0; i < numb_line; ++i) {
+        if (i + 1 < 10) {
+            cout << i + 1 << "  ";
+        }
+        else if (i + 1 < 100) {
+            cout << i + 1 << " ";
+        }
+        else if (i + 1 < 1000) {
+            cout << i + 1;
+        }
+        for (int i1 = 0; i1 < number_of_columns; ++i1) {
+            if ((max_length - table[i][i1].size()) % 2 == 0) {
+                cout << " | " << ident((max_length - table[i][i1].size()) / 2) << table[i][i1] << ident((max_length - table[i][i1].size()) / 2);
+            }
+            else {
+                cout << " | " << ident((max_length - table[i][i1].size()) / 2 + 1) << table[i][i1] << ident((max_length - table[i][i1].size()) / 2);
+            }
+        }
+        cout << "|" << endl;
+        cout << "    ";
+        for (int i1 = 0; i1 < number_of_columns * max_length + number_of_columns*3; ++i1) { //3 т.к. " | " занимает три символа
+            cout << "-";
+        }
+        cout << endl;
+    }
+}
+void output_help() {
+    cout << "help - вывод списка команд" << endl;
+    cout << "output - вывод таблицы" << endl;
+    cout << "edit \"координата x\" \"координата y\" 'новое значение\" - изменение ячейки таблицы" << endl;
+    cout << "save \"имя\" \"путь\" - сохранить изменения в таблице " << endl;
+    cout << "add_item \"содержание строки\" - добавить строку в таблицу" << endl;
+    cout << "delete_item \"номер строки\" - удалить строку из таблицы" << endl;
+    cout << "sort - сортировка по столбцам и стилям" << endl;
+}
+int edit_cell(int x, int y, string new_value) {
+    if (x - 1 <= number_of_columns - 1 && y - 1 <= numb_line - 1) {
+        table[y - 1][x - 1] = new_value;
+        cout << "Изменение прошло успешно" << endl;
+        return 0;
+    }
+    else {
+        cout << "Выход за пределы таблицы" << endl;
+        return 0;
+    }
+    //table[x - 1][y - 1];
+}
+void save(int numb_line, int number_of_columns, string way_of_save, string name) {
+
+    string final_way = way_of_save.substr(1,way_of_save.size() - 1) + "\\" + name + ".csv";
+
+    ofstream writer(final_way);
+    for (int i = 0; i < numb_line; ++i) {
+        for (int i1 = 0; i1 < number_of_columns; ++i1) {
+            writer << table[i][i1]<<";";
+        }
+        writer << endl;
+    }
+    cout << "Сохранение прошло успешно" << endl;
+}
+void getway() {
+    cout << "Введите путь к таблице .csv: ";
+    string a;
+    getline(cin,a);
+    if (a != "1") {
+        way = a;
+    }
+}
+void add_item() {
+    ++numb_line;
+    vector<string> line;
+    for (int i = 0; i < number_of_columns; ++i) {
+        string cur_item;
+        cin >> cur_item;
+        line.push_back(cur_item);
+    }
+    table.push_back(line);
+    cout << "Строка была добавлена" << endl;
+}
+void sortq(string type, int num_of_sort) {
+    vector<vector<string>> table_2 = table, sorted_names;
+
+    if (type == "AZ") {
+        for (int i = 1; i < numb_line; i++) {
+            for (int j = 1; j < numb_line - 1; j++) {
+                if (table[j][num_of_sort - 1] > table[j + 1][num_of_sort - 1]) {
+                    vector<string> b = table[j]; // создали дополнительную переменную
+                    table[j] = table[j + 1]; // меняем местами
+                    table[j + 1] = b; // значения элементов
+                }
+            }
+        }
+        cout << "Сортировка прошла успешно" << endl;
+    }
+    else if (type == "1-9") {
+        for (int i = 1; i < numb_line; i++) {
+            for (int j = 1; j < numb_line - 1; j++) {
+                double fst, snd;
+                bool flag1 = 0, flag2 = 0; //flag = 1 если прошла замена точки на запятую в строке (сделано т.к. stod сопринимает только строку с запятой).
+                for (int i1 = 0; i1 < table[j][num_of_sort - 1].size(); ++i1) { //Замена . на ,
+                    if (table[j][num_of_sort - 1][i1] == '.') {
+                        table[j][num_of_sort - 1][i1] = ',';
+                        fst = stod(table[j][num_of_sort - 1]);
+                        table[j][num_of_sort - 1][i1] = '.';
+                        flag1 = 1;
+                        break;
+                    }
+                }
+                for (int i1 = 0; i1 < table[j + 1][num_of_sort - 1].size(); ++i1) { //Замена . на ,
+                    if (table[j + 1][num_of_sort - 1][i1] == '.') {
+                        table[j + 1][num_of_sort - 1][i1] = ',';
+                        snd = stod(table[j + 1][num_of_sort - 1]);
+                        table[j + 1][num_of_sort - 1][i1] = '.';
+                        flag2 = 1;
+                        break;
+                    }
+                }
+                if (flag1 == 0) {
+                    fst = stod(table[j][num_of_sort - 1]);
+                }
+                if (flag2 == 0) {
+                    snd = stod(table[j + 1][num_of_sort - 1]);
+                }
+                if (fst > snd) {
+                    vector<string> b = table[j]; // создали дополнительную переменную
+                    table[j] = table[j + 1]; // меняем местами
+                    table[j + 1] = b; // значения элементов
+                }
+            }
+        }
+        cout << "Сортировка прошла успешно" << endl;
+    }
+    if (type == "ZA") {
+        for (int i = 1; i < numb_line; i++) {
+            for (int j = 1; j < numb_line - 1; j++) {
+                if (table[j][num_of_sort - 1] < table[j + 1][num_of_sort - 1]) {
+                    vector<string> b = table[j]; // создали дополнительную переменную
+                    table[j] = table[j + 1]; // меняем местами
+                    table[j + 1] = b; // значения элементов
+                }
+            }
+        }
+        cout << "Сортировка прошла успешно" << endl;
+    }
+    else if (type == "9-1") {
+        for (int i = 1; i < numb_line; i++) {
+            for (int j = 1; j < numb_line - 1; j++) {
+                double fst, snd;
+                bool flag1 = 0, flag2 = 0; //flag = 1 если прошла замена точки на запятую в строке (сделано т.к. stod сопринимает только строку с запятой).
+                for (int i1 = 0; i1 < table[j][num_of_sort - 1].size(); ++i1) { //Замена . на ,
+                    if (table[j][num_of_sort - 1][i1] == '.') {
+                        table[j][num_of_sort - 1][i1] = ',';
+                        fst = stod(table[j][num_of_sort - 1]);
+                        table[j][num_of_sort - 1][i1] = '.';
+                        flag1 = 1;
+                        break;
+                    }
+                }
+                for (int i1 = 0; i1 < table[j + 1][num_of_sort - 1].size(); ++i1) { //Замена . на ,
+                    if (table[j + 1][num_of_sort - 1][i1] == '.') {
+                        table[j + 1][num_of_sort - 1][i1] = ',';
+                        snd = stod(table[j + 1][num_of_sort - 1]);
+                        table[j + 1][num_of_sort - 1][i1] = '.';
+                        flag2 = 1;
+                        break;
+                    }
+                }
+                if (flag1 == 0) {
+                    fst = stod(table[j][num_of_sort - 1]);
+                }
+                if (flag2 == 0) {
+                    snd = stod(table[j + 1][num_of_sort - 1]);
+                }
+                if (fst < snd) {
+                    vector<string> b = table[j]; // создали дополнительную переменную
+                    table[j] = table[j + 1]; // меняем местами
+                    table[j + 1] = b; // значения элементов
+                }
+            }
+        }
+        cout << "Сортировка прошла успешно" << endl;
+    }
+    else {
+        cout << "Некорректный стиль сортировки. " << endl;
+    }
+}
+
+int main()
+{
+    setlocale(LC_ALL, "RUS");
+
+    getway();
+
+    ifstream reader(way);
+    string line;
+    char delimeter = ';';
+    bool flag_resize = 1;
+    bool flag = 1; 
+    while (getline(reader, line)) { //Получение размеров таблицы
+        stringstream stream(line);
+        int i = 0;
+        if (flag == 1) {
+            while (1) {
+                if (flag == 1) {
+                    ++number_of_columns;
+                }
+                while (line[i] != ';' && i != line.size()) {
+                    ++i;
+                }
+                if (i == line.size()) {
+                    flag = 0;
+                    break;
+                }
+                ++i;
+            }
+
+        }
+        ++numb_line;
+    }
+
+    vector<vector<string>> table1(numb_line);
+    for (int i1 = 0; i1 < table1.size(); i1++) {
+        table1[i1].resize(number_of_columns);
+    }
+    table = table1;
+
+    reader.close();
+    ifstream reader2(way);
+    string line2;
+
+    int cur_line = 0;
+    while (getline(reader2, line2)) { 
+        stringstream stream(line2);
+        for (int i = 0; i < number_of_columns; ++i) {
+            getline(stream, table[cur_line][i], delimeter);
+        }
+        ++cur_line;
+    }
+    reader2.close();
+    int max_length = get_max_lenght();
+
+    
+    print_table(max_length);
+    while (1) { //Интерфейс
+        cout << endl << endl;
+        cout << "Введите команду." << endl;
+        cout << "Для просмотра списка команд пропишите \"help\"." << endl;
+        string comm;
+        cin >> comm;
+        if (comm == "help") {
+            output_help();
+        }
+        else if (comm == "output") {
+            max_length = get_max_lenght(); 
+            print_table(max_length);
+        }
+        else if (comm == "edit") {
+            string new_value = "";
+            int x, y;
+            cin >> x >> y >> new_value;
+            edit_cell(x, y, new_value);
+        }
+        else if (comm == "save") {
+            string way_of_save, name;
+            cin >> name;
+            getline(cin, way_of_save);
+            save(numb_line, number_of_columns, way_of_save, name);
+        }
+        else if (comm == "add_item") {
+            add_item();
+        }
+        else if (comm == "delete_item") {
+            int number_of_delete;
+            cin >> number_of_delete;
+            number_of_delete--; //Индексация
+            for (int i = number_of_delete; i < numb_line - 1; ++i) {
+                for (int i1 = 0; i1 < number_of_columns; ++i1) {
+                    table[i][i1] = table[i + 1][i1];
+                }
+            }
+            numb_line--;
+            cout << "Удаление прошло успешно" << endl;
+        }
+        else if (comm == "sort") {
+            cout << "Выберете стиль сортировки: AZ,ZA, 1-9, 9-1  и номер столбца" << endl;
+            string type;
+            int num_of_sort;
+            cin >> type >> num_of_sort;
+            sortq(type, num_of_sort);
+        }
+        else {
+            cout << "Незвестная команда." << endl;
+        }
+    }
+}
